@@ -144,12 +144,13 @@ def save_result(result, source, directory):
 
 def interactive(image, source, args):
     import matplotlib.pyplot as plt
-    from matplotlib.widgets import RectangleSelector
+    from matplotlib.widgets import RectangleSelector, Button
     # Reserve our shortcuts; Matplotlib otherwise opens its save dialog on 's'.
     for action in ("save", "quit", "xscale", "yscale"):
         plt.rcParams[f"keymap.{action}"] = []
     state = {"threshold": args.threshold, "roi": args.roi, "invert": args.invert}
     figure, grid = plt.subplots(2, 2, figsize=(14, 9))
+    figure.canvas.manager.set_window_title("Rice Particle Counter — Interactive System")
     axes = grid.ravel()
     current = {}
 
@@ -157,7 +158,54 @@ def interactive(image, source, args):
         current["result"] = analyze(image, state["threshold"], args.min_area, state["roi"], state["invert"])
         result = current["result"]
         draw_dashboard(figure, axes, result, source)
+        figure.subplots_adjust(bottom=0.25)
         figure.canvas.draw_idle()
+
+    def load_image(path):
+        nonlocal image, source
+        loaded = cv2.imread(str(path))
+        if loaded is None:
+            status.set_text(f"Cannot read: {Path(path).name}")
+            figure.canvas.draw_idle()
+            return
+        image, source = loaded, Path(path)
+        state["roi"] = None
+        selector.set_visible(False)
+        status.set_text(f"Loaded: {source.name}")
+        redraw()
+
+    def open_image(event):
+        from tkinter import Tk, filedialog
+        root = Tk()
+        root.withdraw()
+        try:
+            selected = filedialog.askopenfilename(title="Open rice image", initialdir=str(Path(source).parent),
+                                                  filetypes=[("Images", "*.png *.jpg *.jpeg *.bmp *.tif *.tiff"), ("All files", "*")])
+        finally:
+            root.destroy()
+        if selected:
+            load_image(selected)
+
+    def browse(step):
+        folder = Path(source).parent
+        files = sorted(p for p in folder.iterdir() if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"))
+        if files:
+            index = files.index(Path(source)) if Path(source) in files else 0
+            load_image(files[(index + step) % len(files)])
+
+    def save():
+        try:
+            save_result(current["result"], source, args.output)
+        except OSError as error:
+            status.set_text(f"Save failed: {error}")
+        else:
+            status.set_text(f"Saved: {Path(args.output).resolve()}")
+        figure.canvas.draw_idle()
+
+    def reset():
+        state["roi"] = None
+        selector.set_visible(False)
+        redraw()
 
     def select(start, end):
         if any(v is None for v in (start.xdata, start.ydata, end.xdata, end.ydata)):
@@ -177,10 +225,16 @@ def interactive(image, source, args):
         elif event.key == "i":
             state["invert"] = not state["invert"]
         elif event.key == "r":
-            state["roi"] = None
+            reset()
+            return
         elif event.key == "s":
-            save_result(current["result"], source, args.output)
-            print(f"Saved to {Path(args.output).resolve()}")
+            save()
+            return
+        elif event.key == "o":
+            open_image(event)
+            return
+        elif event.key in ("left", "right"):
+            browse(-1 if event.key == "left" else 1)
             return
         elif event.key in ("q", "escape"):
             plt.close(figure)
@@ -191,6 +245,17 @@ def interactive(image, source, args):
 
     redraw()
     selector = RectangleSelector(axes[0], select, button=[1], minspanx=2, minspany=2, spancoords="pixels")
+    buttons = []
+    controls = [("Open image", open_image), ("Previous", lambda event: browse(-1)),
+                ("Next", lambda event: browse(1)), ("Reset ROI", lambda event: reset()),
+                ("Save results", lambda event: save())]
+    for index, (label, callback) in enumerate(controls):
+        button = Button(figure.add_axes([0.07 + index * 0.18, 0.13, 0.15, 0.045]), label)
+        button.on_clicked(callback)
+        buttons.append(button)
+    status_axis = figure.add_axes([0.07, 0.19, 0.9, 0.025])
+    status_axis.set_axis_off()
+    status = status_axis.text(0, 0, "Ready | Open: O | Previous/Next: Left/Right | Save overwrites the selected output folder", fontsize=9)
     figure.canvas.mpl_connect("key_press_event", key)
     plt.show()
     return selector
@@ -198,7 +263,8 @@ def interactive(image, source, args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("image", type=Path)
+    parser.add_argument("image", type=Path, nargs="?", default=Path(__file__).parent / "data/samples/synthetic_montage.png",
+                        help="Image to analyze; defaults to the synthetic dataset demo")
     parser.add_argument("--threshold", type=int, default=127)
     parser.add_argument("--min-area", type=float, default=30)
     parser.add_argument("--roi", nargs=4, type=int, metavar=("X", "Y", "W", "H"))

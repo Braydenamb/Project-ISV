@@ -4,6 +4,10 @@ Tanggal: **16 November 2026**. Aturan acuan: `/home/miq/Documents/ISV/Project IS
 
 ## Kesimpulan
 
+### Pembaruan sistem interaktif
+
+Aplikasi dapat diluncurkan tanpa path gambar dan membuka demo. Tombol Open image, Previous, Next, Reset ROI, Save results serta status pada jendela sudah tersedia. **11/11 unit test lulus**; pengujian tambahan membuktikan pergantian gambar mereset ROI dan memperbarui sumber/hasil ekspor. Event loop Qt desktop dijalankan dengan timer untuk menaikkan threshold, menyimpan, dan menutup jendela; hasil simpan menunjukkan threshold 132. Ini bukan pengujian manual mouse atau dialog file. Laporan/video dikerjakan manual oleh kelompok; kalibrasi fisik dan kamera live belum diimplementasikan.
+
 ### Pembaruan format dashboard
 
 Aplikasi interaktif kini memakai layout 2×2 yang sama dengan preview dan ekspor `dashboard.png`: input/ROI, mask bernomor, histogram, dan tabel luas. Tabel maksimal 12 baris; seluruh data tetap di CSV. Header menyatakan px² belum terkalibrasi. Pengujian terbaru **10/10 lulus**, termasuk pembaruan tabel saat ROI berubah, kasus kosong, batas tabel, serta ekspor dashboard. Pengujian desktop manual dan validasi fisik tetap belum dibuktikan. Angka 9/9 pada audit awal di bawah merupakan hasil sebelum pembaruan ini.

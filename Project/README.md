@@ -5,6 +5,26 @@ Hasil audit terbaru (16 November 2026): `/home/miq/Documents/ISV/Project ISV/Pro
 
 ## Prototipe yang sudah dibuat
 
+### Menjalankan sistem interaktif
+
+Laporan akhir dan video demo disiapkan manual oleh kelompok. Fokus implementasi saat ini adalah aplikasi desktop, bukan gambar PNG.
+
+Jalankan tanpa argumen gambar untuk membuka demo dataset secara otomatis:
+
+```bash
+"/home/miq/Documents/ISV/Project ISV/Project/.venv/bin/python" \
+  "/home/miq/Documents/ISV/Project ISV/Project/particle_counter.py"
+```
+
+- **Open image / O:** pilih gambar melalui dialog file (memerlukan tkinter pada instalasi Python).
+- **Previous/Next / panah kiri/kanan:** buka gambar sebelumnya/berikutnya pada folder gambar saat ini; navigasi berulang dan tidak rekursif. Gunakan Open image untuk berpindah folder varietas.
+- **Reset ROI / R:** kembali ke seluruh gambar. ROI direset saat mengganti gambar; threshold dan polaritas tetap dipertahankan.
+- **Save results / S:** ekspor hasil saat ini; status simpan muncul pada jendela. Folder keluaran yang sama ditimpa.
+- Drag ROI pada panel input; **+/-** mengatur threshold dan **I** membalik polaritas; **Q** keluar.
+- Matikan mode pan/zoom toolbar sebelum memilih ROI. Status satuan tetap **px² — UNCALIBRATED**.
+
+Pengujian terbaru: **11/11 unit test lulus**, termasuk pergantian gambar, reset ROI, dan sumber ekspor. Event loop desktop Qt juga diuji dengan pembaruan threshold dan penyimpanan otomatis. Dialog file dan pengalaman penggunaan fisik mouse tetap perlu dicoba manual oleh pengguna.
+
 ### Format dashboard saat ini
 
 Aplikasi interaktif dan ekspor kini memakai renderer yang sama dengan layout **2×2**:

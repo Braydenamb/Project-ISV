@@ -79,7 +79,7 @@ class CounterTests(unittest.TestCase):
             def exercise():
                 figure = plt.gcf()
                 figure.canvas.draw()
-                self.assertEqual(len(figure.axes), 4)
+                self.assertEqual(len(figure.axes), 10)
                 self.assertEqual(len(figure.axes[3].tables), 1)
                 axis = figure.axes[0]
                 start = axis.transData.transform((5, 5))
@@ -104,6 +104,32 @@ class CounterTests(unittest.TestCase):
 
             with patch("matplotlib.pyplot.show", side_effect=exercise):
                 interactive(self.image, "synthetic.png", args)
+
+    def test_image_browsing_resets_roi_and_updates_source(self):
+        with tempfile.TemporaryDirectory() as directory, matplotlib.rc_context():
+            folder = Path(directory)
+            first, second = folder / "a.png", folder / "b.png"
+            cv2.imwrite(str(first), self.image)
+            cv2.imwrite(str(second), np.zeros_like(self.image))
+            args = SimpleNamespace(threshold=127, min_area=30, roi=(5, 5, 35, 35), invert=False, output=folder / "results")
+
+            def exercise():
+                figure = plt.gcf()
+                for key in ("right", "s"):
+                    figure.canvas.callbacks.process("key_press_event", KeyEvent("key_press_event", figure.canvas, key))
+                saved = json.loads((args.output / "summary.json").read_text())
+                self.assertEqual(saved["source"], str(second.resolve()))
+                self.assertEqual(saved["particles"], [])
+                self.assertEqual(saved["roi"], [0, 0, 180, 120])
+                for key in ("left", "s"):
+                    figure.canvas.callbacks.process("key_press_event", KeyEvent("key_press_event", figure.canvas, key))
+                saved = json.loads((args.output / "summary.json").read_text())
+                self.assertEqual(len(saved["particles"]), 2)
+                self.assertIn("Saved:", figure.axes[-1].texts[0].get_text())
+                plt.close(figure)
+
+            with patch("matplotlib.pyplot.show", side_effect=exercise):
+                interactive(self.image, first, args)
 
 
     def test_dashboard_empty_and_table_limit(self):
