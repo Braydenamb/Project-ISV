@@ -58,6 +58,62 @@ def analyze(image, threshold=127, min_area=30, roi=None, invert=False):
             "min_area_px2": min_area, "invert": invert}
 
 
+def draw_dashboard(figure, axes, result, source):
+    """Shared four-panel presentation for the application and PNG export."""
+    from matplotlib.ticker import MaxNLocator
+    for axis in axes:
+        axis.clear()
+    for axis, key, title in ((axes[0], "overlay", "Input image + ROI (drag to select)"),
+                             (axes[1], "mask_numbered", "Numbered particle mask")):
+        axis.imshow(cv2.cvtColor(result[key], cv2.COLOR_BGR2RGB))
+        axis.set_title(title, loc="left")
+        for particle in result["particles"]:
+            axis.annotate(str(particle["id"]), (particle["cx_px"], particle["cy_px"]),
+                          xytext=(0, 12), textcoords="offset points", ha="center",
+                          fontsize=11, color="yellow", fontweight="bold",
+                          bbox={"facecolor": "black", "alpha": 0.7, "edgecolor": "none"})
+        axis.set(xlabel="X (px)", ylabel="Y (px)")
+    areas = [p["area_px2"] for p in result["particles"]]
+    if areas:
+        axes[2].hist(areas, bins=min(10, len(areas)), color="#258b83", edgecolor="white")
+    else:
+        axes[2].text(0.5, 0.5, "No accepted particles", ha="center", transform=axes[2].transAxes)
+    axes[2].set(title="Size distribution", xlabel="Contour area (px²)", ylabel="Particle count")
+    axes[2].yaxis.set_major_locator(MaxNLocator(integer=True))
+    axes[3].set_axis_off()
+    visible = result["particles"][:12]
+    axes[3].set_title(f"Particle results — showing {len(visible)} of {len(areas)}", loc="left")
+    if visible:
+        table = axes[3].table(cellText=[[p["id"], f"{p['area_px2']:,.1f}"] for p in visible],
+                              colLabels=["Particle ID", "Area (px²)"], cellLoc="center",
+                              bbox=[0.05, 0.08, 0.9, 0.82])
+        table.auto_set_font_size(False)
+        table.set_fontsize(11)
+    else:
+        axes[3].text(0.5, 0.5, "No accepted particles", ha="center", transform=axes[3].transAxes)
+    axes[3].text(0.5, 0, "Complete measurements are saved in particles.csv", ha="center",
+                 transform=axes[3].transAxes, fontsize=9)
+    figure.suptitle("PARTICLE COUNTER & SIZE DISTRIBUTION ANALYZER\n"
+                    f"Count: {len(areas)} | Border excluded: {result['border_excluded']} | "
+                    f"Threshold: {result['threshold']} | Unit: px² — UNCALIBRATED", fontsize=15)
+    for text in list(figure.texts):
+        if text is not figure._suptitle:
+            text.remove()
+    note = "Synthetic dataset montage — not a physical experiment. " if Path(source).name == "synthetic_montage.png" else ""
+    figure.text(0.5, 0.06, f"Source: {Path(source).name}\n{note}Physical size has not been validated.",
+                ha="center", fontsize=9, color="#8c3300")
+    figure.text(0.5, 0.015, "Mouse: drag ROI | +/-: threshold | i: invert | r: reset ROI | s: save | q: quit",
+                ha="center", fontsize=10)
+    figure.subplots_adjust(top=0.84, bottom=0.17, left=0.07, right=0.97, hspace=0.45, wspace=0.3)
+
+
+def save_dashboard(result, source, destination):
+    from matplotlib.figure import Figure
+    figure = Figure(figsize=(14, 9))
+    draw_dashboard(figure, figure.subplots(2, 2).ravel(), result, source)
+    figure.savefig(destination, dpi=130)
+
+
 def save_result(result, source, directory):
     from matplotlib.figure import Figure
     directory = Path(directory)
@@ -83,6 +139,7 @@ def save_result(result, source, directory):
     axis.set(xlabel="Contour area (px²)", ylabel="Particle count", title="Size distribution — uncalibrated")
     figure.tight_layout()
     figure.savefig(directory / "histogram.png")
+    save_dashboard(result, source, directory / "dashboard.png")
 
 
 def interactive(image, source, args):
@@ -92,24 +149,14 @@ def interactive(image, source, args):
     for action in ("save", "quit", "xscale", "yscale"):
         plt.rcParams[f"keymap.{action}"] = []
     state = {"threshold": args.threshold, "roi": args.roi, "invert": args.invert}
-    figure, axes = plt.subplots(1, 3, figsize=(14, 5))
+    figure, grid = plt.subplots(2, 2, figsize=(14, 9))
+    axes = grid.ravel()
     current = {}
 
     def redraw():
         current["result"] = analyze(image, state["threshold"], args.min_area, state["roi"], state["invert"])
         result = current["result"]
-        for axis in axes:
-            axis.clear()
-        axes[0].imshow(cv2.cvtColor(result["overlay"], cv2.COLOR_BGR2RGB))
-        axes[0].set_title("Drag ROI here | full-image coordinates")
-        axes[1].imshow(cv2.cvtColor(result["mask_numbered"], cv2.COLOR_BGR2RGB))
-        axes[1].set_title("Numbered accepted particle mask")
-        areas = [p["area_px2"] for p in result["particles"]]
-        if areas:
-            axes[2].hist(areas, bins=min(10, len(areas)), edgecolor="black")
-        axes[2].set(xlabel="Contour area (px²)", ylabel="Count", title="Uncalibrated size distribution")
-        figure.suptitle(f"Count: {len(areas)} | Border excluded: {result['border_excluded']} | "
-                       f"Threshold: {state['threshold']} | +/-: threshold | i: invert | r: reset ROI | s: save | q: quit")
+        draw_dashboard(figure, axes, result, source)
         figure.canvas.draw_idle()
 
     def select(start, end):

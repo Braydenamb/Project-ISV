@@ -4,6 +4,10 @@ Tanggal: **16 November 2026**. Aturan acuan: `/home/miq/Documents/ISV/Project IS
 
 ## Kesimpulan
 
+### Pembaruan format dashboard
+
+Aplikasi interaktif kini memakai layout 2×2 yang sama dengan preview dan ekspor `dashboard.png`: input/ROI, mask bernomor, histogram, dan tabel luas. Tabel maksimal 12 baris; seluruh data tetap di CSV. Header menyatakan px² belum terkalibrasi. Pengujian terbaru **10/10 lulus**, termasuk pembaruan tabel saat ROI berubah, kasus kosong, batas tabel, serta ekspor dashboard. Pengujian desktop manual dan validasi fisik tetap belum dibuktikan. Angka 9/9 pada audit awal di bawah merupakan hasil sebelum pembaruan ini.
+
 **Prototipe citra statis berjalan dan memenuhi alur fungsional dasar Topik 10 pada pengujian terbatas. Proyek belum lengkap untuk pengumpulan UAS.** Ini bukan estimasi nilai atau persentase kelulusan rubrik.
 
 ## Lingkungan yang diperiksa

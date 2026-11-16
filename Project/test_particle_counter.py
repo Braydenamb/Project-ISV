@@ -14,7 +14,7 @@ from matplotlib.backend_bases import KeyEvent, MouseEvent
 import cv2
 import numpy as np
 
-from particle_counter import analyze, save_result, interactive
+from particle_counter import analyze, save_result, interactive, draw_dashboard
 
 
 class CounterTests(unittest.TestCase):
@@ -55,7 +55,7 @@ class CounterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             for image in (self.image, np.zeros_like(self.image)):
                 save_result(analyze(image), "synthetic.png", directory)
-                for filename in ("overlay.png", "mask.png", "mask_numbered.png", "binary.png", "particles.csv", "summary.json", "histogram.png"):
+                for filename in ("overlay.png", "mask.png", "mask_numbered.png", "binary.png", "particles.csv", "summary.json", "histogram.png", "dashboard.png"):
                     self.assertTrue((Path(directory) / filename).is_file())
                 summary = json.loads((Path(directory) / "summary.json").read_text())
                 with (Path(directory) / "particles.csv").open() as stream:
@@ -79,6 +79,8 @@ class CounterTests(unittest.TestCase):
             def exercise():
                 figure = plt.gcf()
                 figure.canvas.draw()
+                self.assertEqual(len(figure.axes), 4)
+                self.assertEqual(len(figure.axes[3].tables), 1)
                 axis = figure.axes[0]
                 start = axis.transData.transform((5, 5))
                 end = axis.transData.transform((40, 40))
@@ -90,6 +92,7 @@ class CounterTests(unittest.TestCase):
                 self.assertEqual(saved["roi"], [5, 5, 35, 35])
                 self.assertEqual(saved["threshold"], 132)
                 self.assertEqual(len(saved["particles"]), 1)
+                self.assertEqual(figure.axes[3].tables[0][1, 1].get_text().get_text(), "400.0")
                 for key in ("r", "-", "s"):
                     figure.canvas.callbacks.process("key_press_event", KeyEvent("key_press_event", figure.canvas, key))
                 saved = json.loads((args.output / "summary.json").read_text())
@@ -101,6 +104,21 @@ class CounterTests(unittest.TestCase):
 
             with patch("matplotlib.pyplot.show", side_effect=exercise):
                 interactive(self.image, "synthetic.png", args)
+
+
+    def test_dashboard_empty_and_table_limit(self):
+        figure, grid = plt.subplots(2, 2)
+        try:
+            result = analyze(np.zeros_like(self.image))
+            draw_dashboard(figure, grid.ravel(), result, "empty.png")
+            self.assertEqual(len(figure.axes[3].tables), 0)
+            result["particles"] = [{"id": i+1, "area_px2": 400, "cx_px": 20, "cy_px": 20} for i in range(15)]
+            draw_dashboard(figure, grid.ravel(), result, "many.png")
+            self.assertIn("showing 12 of 15", figure.axes[3].get_title(loc="left"))
+            self.assertEqual(len(figure.axes[3].tables[0].get_celld()), 26)
+            self.assertEqual(len(figure.texts), 3)
+        finally:
+            plt.close(figure)
 
 
 if __name__ == "__main__":

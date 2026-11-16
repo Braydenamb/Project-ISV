@@ -5,6 +5,17 @@ Hasil audit terbaru (16 November 2026): `/home/miq/Documents/ISV/Project ISV/Pro
 
 ## Prototipe yang sudah dibuat
 
+### Format dashboard saat ini
+
+Aplikasi interaktif dan ekspor kini memakai renderer yang sama dengan layout **2×2**:
+input + ROI (kiri atas), mask bernomor (kanan atas), histogram (kiri bawah), dan tabel luas per partikel (kanan bawah).
+Header menampilkan jumlah, objek batas yang dikecualikan, threshold, dan status **px² — UNCALIBRATED**.
+Tabel menampilkan maksimal 12 objek agar tetap terbaca; CSV selalu menyimpan seluruh objek.
+ROI dan threshold memperbarui keempat panel dari hasil analisis yang sama.
+Tombol `s` atau mode `--headless` juga menyimpan `dashboard.png` bersama berkas individual.
+Preview dokumentasi di `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/current_output.png` menggunakan layout yang sama; buat ulang dengan `/home/miq/Documents/ISV/Project ISV/Project/create_preview.py`.
+Verifikasi terbaru: **10/10 unit test lulus**, termasuk layout, tabel, kasus kosong, batas tampilan tabel, ekspor, dan interaksi tersimulasi.
+
 Sampel proyek sudah diputuskan: beras. Implementasi awal memakai citra statis dari dataset Kaggle, bukan model klasifikasi. Pengukuran masih **px²**, belum terkalibrasi secara fisik.
 
 File aplikasi: `/home/miq/Documents/ISV/Project ISV/Project/particle_counter.py`.
@@ -51,7 +62,7 @@ Lingkungan lokal: virtual environment memakai `--system-site-packages` untuk Num
 
 ### Verifikasi awal
 
-- 9 unit test lulus: jumlah/luas kontur, citra kosong/threshold, ROI/koordinat global, batas ROI, filter noise/inversi, parameter invalid, isi ekspor termasuk hasil kosong, mask bernomor terpisah, dan callback interaksi GUI.
+- 10 unit test lulus: jumlah/luas kontur, citra kosong/threshold, ROI/koordinat global, batas ROI, filter noise/inversi, parameter invalid, isi ekspor termasuk hasil kosong, mask bernomor terpisah, callback interaksi GUI, serta dashboard kosong dan batas tampilan tabel.
 - 50/50 gambar sampel menghasilkan satu kontur diterima pada threshold 127 dan luas minimum 30 px². Ini pemeriksaan jumlah, bukan validasi akurasi segmentasi atau ukuran fisik.
 - Montage sintetis: 5 objek diharapkan, 5 terdeteksi.
 - CLI headless berhasil menyimpan hasil.
