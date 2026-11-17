@@ -7,7 +7,7 @@ from particle_counter import analyze, save_dashboard
 
 
 def main():
-    root = Path(__file__).resolve().parent
+    root = Path(__file__).resolve().parents[1]
     source = root / "data/samples/synthetic_montage.png"
     result = analyze(cv2.imread(str(source)))
     destination = root / "dokumentasi/current_output.png"

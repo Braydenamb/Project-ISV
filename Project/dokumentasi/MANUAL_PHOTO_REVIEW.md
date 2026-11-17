@@ -25,8 +25,9 @@ Pada lima foto padat, kontur masih dapat menggabungkan beberapa butir. Beberapa 
 ## Cara menggunakan foto nyata
 
 ```bash
+cd "/home/miq/Documents/ISV/Project ISV/Project"
 "/home/miq/Documents/ISV/Project ISV/Project/.venv/bin/python" \
-  "/home/miq/Documents/ISV/Project ISV/Project/run_manual_photos.py"
+  -m tools.run_manual_photos
 ```
 
 - Next/Previous memindahkan foto. Threshold awal per foto dibaca dari `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/photo_settings.json`; ROI direset.
@@ -43,8 +44,9 @@ Preview semua foto: `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/man
 Reproduksi batch:
 
 ```bash
+cd "/home/miq/Documents/ISV/Project ISV/Project"
 "/home/miq/Documents/ISV/Project ISV/Project/.venv/bin/python" \
-  "/home/miq/Documents/ISV/Project ISV/Project/process_photos.py" \
+  -m tools.process_photos \
   "/home/miq/Documents/ISV/Project ISV/foto" \
   --settings "/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/photo_settings.json"
 ```

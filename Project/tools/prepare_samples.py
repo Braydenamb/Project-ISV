@@ -10,7 +10,7 @@ from particle_counter import analyze, save_result
 
 
 def main():
-    root = Path(__file__).resolve().parent
+    root = Path(__file__).resolve().parents[1]
     destination = root / "data" / "samples"
     destination.mkdir(parents=True, exist_ok=True)
     with ZipFile(root / "data" / "raw" / "rice-images-dataset.zip") as archive:

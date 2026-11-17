@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright
 
 
 def main():
-    root = Path(__file__).resolve().parent
+    root = Path(__file__).resolve().parents[1]
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(executable_path="/usr/bin/chromium", headless=True, args=["--no-sandbox"])
         page = browser.new_page(viewport={"width": 1600, "height": 1300})

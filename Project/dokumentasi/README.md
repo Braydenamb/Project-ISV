@@ -18,8 +18,8 @@ Gambar masukan untuk pemrosesan tetap disimpan di folder data proyek, sedangkan 
 
 ## Acuan
 
-- Aturan tugas: `/home/miq/Documents/ISV/Project ISV/Project/RULES.md`.
-- Hasil verifikasi: `/home/miq/Documents/ISV/Project ISV/Project/VERIFICATION.md`.
+- Aturan tugas: `/home/miq/Documents/ISV/Project ISV/Project/docs/RULES.md`.
+- Hasil verifikasi: `/home/miq/Documents/ISV/Project ISV/Project/docs/VERIFICATION.md`.
 - Cara menjalankan dan rencana kerja: `/home/miq/Documents/ISV/Project ISV/Project/README.md`.
 
 Dokumen acuan tersebut tetap di lokasi semula agar tidak ada salinan aturan atau status verifikasi yang berbeda.

@@ -1,0 +1,3 @@
+# Temporary editor files (already-tracked files are not removed).
+.~lock.*#
+*.swp

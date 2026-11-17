@@ -9,7 +9,7 @@ from particle_counter import analyze, save_photo, starting_threshold
 
 
 def main():
-    root = Path(__file__).resolve().parent
+    root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path)
     parser.add_argument("--output", type=Path, default=root / "outputs/manual_photos")

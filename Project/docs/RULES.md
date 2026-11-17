@@ -108,4 +108,4 @@ Proyek belum boleh disebut selesai hanya karena aplikasi berjalan. Periksa:
 - [ ] Video demo dari setup hingga hasil tersedia dan ditautkan dalam PDF.
 - [ ] Pengiriman memenuhi alamat, subjek, dan waktu UAS.
 
-Status aktual dan bukti pemeriksaan disimpan di `/home/miq/Documents/ISV/Project ISV/Project/VERIFICATION.md`, bukan dicampur dengan ketentuan resmi.
+Status aktual dan bukti pemeriksaan disimpan di `/home/miq/Documents/ISV/Project ISV/Project/docs/VERIFICATION.md`, bukan dicampur dengan ketentuan resmi.

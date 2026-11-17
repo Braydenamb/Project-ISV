@@ -5,7 +5,7 @@ import sys
 
 
 def main():
-    root = Path(__file__).resolve().parent
+    root = Path(__file__).resolve().parents[1]
     photos = sorted((root.parent / "foto").glob("*.jpeg"))
     if not photos:
         raise SystemExit(f"No JPEG photos found in {root.parent / 'foto'}")

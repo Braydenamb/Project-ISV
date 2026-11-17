@@ -1,6 +1,6 @@
 # Verifikasi ulang proyek
 
-Tanggal: **16 November 2026**. Aturan acuan: `/home/miq/Documents/ISV/Project ISV/Project/RULES.md`, berdasarkan pembacaan ulang dokumen UAS asli.
+Tanggal: **16 November 2026**. Aturan acuan: `/home/miq/Documents/ISV/Project ISV/Project/docs/RULES.md`, berdasarkan pembacaan ulang dokumen UAS asli.
 
 ## Kesimpulan
 
@@ -56,7 +56,7 @@ Perintah reproduksi sampel (menulis ulang sampel dan hasil montage):
 
 ```bash
 "/home/miq/Documents/ISV/Project ISV/Project/.venv/bin/python" \
-  "/home/miq/Documents/ISV/Project ISV/Project/prepare_samples.py"
+  "/home/miq/Documents/ISV/Project ISV/Project/tools/prepare_samples.py"
 ```
 
 Hasil CLI verifikasi tersimpan di `/home/miq/Documents/ISV/Project ISV/Project/outputs/reverification`: `overlay.png`, `mask.png`, `mask_numbered.png`, `binary.png`, `histogram.png`, `particles.csv`, dan `summary.json`.
