@@ -2,22 +2,27 @@
 import argparse
 import csv
 import json
+import hashlib
 from pathlib import Path
 
 import cv2
 import numpy as np
 
 
-def analyze(image, threshold=127, min_area=30, roi=None, invert=False):
+def analyze(image, threshold=127, min_area=30, roi=None, invert=False, blur=0):
     if image is None or image.dtype != np.uint8 or image.ndim != 3 or image.shape[2] != 3:
         raise ValueError("Expected a uint8 BGR image")
     if not 0 <= threshold <= 255 or min_area < 0:
         raise ValueError("Threshold must be 0..255 and minimum area nonnegative")
+    if blur not in (0, 3, 5, 7):
+        raise ValueError("Blur must be 0, 3, 5, or 7")
     height, width = image.shape[:2]
     x, y, w, h = roi if roi is not None else (0, 0, width, height)
     if x < 0 or y < 0 or w <= 0 or h <= 0 or x + w > width or y + h > height:
         raise ValueError("ROI must lie inside the image")
     gray = cv2.cvtColor(image[y:y+h, x:x+w], cv2.COLOR_BGR2GRAY)
+    if blur:
+        gray = cv2.GaussianBlur(gray, (blur, blur), 0)
     mode = cv2.THRESH_BINARY_INV if invert else cv2.THRESH_BINARY
     _, binary = cv2.threshold(gray, threshold, 255, mode)
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -55,7 +60,43 @@ def analyze(image, threshold=127, min_area=30, roi=None, invert=False):
     return {"particles": particles, "overlay": overlay, "mask": mask, "mask_numbered": mask_numbered,
             "binary": binary, "border_excluded": border_count,
             "roi": [x, y, w, h], "threshold": threshold,
-            "min_area_px2": min_area, "invert": invert}
+            "min_area_px2": min_area, "invert": invert, "blur": blur}
+
+
+def starting_threshold(image, blur=0, roi=None):
+    """Otsu provides a starting value, not a guarantee of correct segmentation."""
+    if roi is not None:
+        x, y, w, h = roi
+        image = image[y:y+h, x:x+w]
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    if blur:
+        gray = cv2.GaussianBlur(gray, (blur, blur), 0)
+    value, _ = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return int(value)
+
+
+def photo_directory(directory, source):
+    source = Path(source).resolve()
+    suffix = hashlib.sha256(str(source).encode()).hexdigest()[:8]
+    return Path(directory) / f"{source.stem}_{suffix}"
+
+
+def save_photo(result, source, directory):
+    """Preserve separate photo exports and rebuild a per-photo index."""
+    destination = photo_directory(directory, source)
+    save_result(result, source, destination)
+    rows = []
+    for path in sorted(Path(directory).glob("*/summary.json")):
+        summary = json.loads(path.read_text())
+        rows.append({"source": summary["source"], "count": len(summary["particles"]),
+                     "border_excluded": summary["border_excluded"], "threshold": summary["threshold"],
+                     "min_area_px2": summary["min_area_px2"], "blur": summary.get("blur", 0),
+                     "unit": "px2", "calibrated": False, "output": str(path.parent.resolve())})
+    with (Path(directory) / "photo_results.csv").open("w", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    return destination
 
 
 def draw_dashboard(figure, axes, result, source):
@@ -95,14 +136,15 @@ def draw_dashboard(figure, axes, result, source):
                  transform=axes[3].transAxes, fontsize=9)
     figure.suptitle("PARTICLE COUNTER & SIZE DISTRIBUTION ANALYZER\n"
                     f"Count: {len(areas)} | Border excluded: {result['border_excluded']} | "
-                    f"Threshold: {result['threshold']} | Unit: px² — UNCALIBRATED", fontsize=15)
+                    f"Threshold: {result['threshold']} | Min area: {result['min_area_px2']:g} px² | "
+                    f"Blur: {result.get('blur', 0)} | px² — UNCALIBRATED", fontsize=13)
     for text in list(figure.texts):
         if text is not figure._suptitle:
             text.remove()
     note = "Synthetic dataset montage — not a physical experiment. " if Path(source).name == "synthetic_montage.png" else ""
-    figure.text(0.5, 0.06, f"Source: {Path(source).name}\n{note}Physical size has not been validated.",
+    figure.text(0.5, 0.06, f"Source: {Path(source).name}\n{note}Touching grains may merge; counts are unverified. Physical size is uncalibrated.",
                 ha="center", fontsize=9, color="#8c3300")
-    figure.text(0.5, 0.015, "Mouse: drag ROI | +/-: threshold | i: invert | r: reset ROI | s: save | q: quit",
+    figure.text(0.5, 0.015, "Drag: ROI | +/-: threshold | A: auto threshold | [/]: min area | B: smoothing | I: invert | R: reset | S: save | Q: quit",
                 ha="center", fontsize=10)
     figure.subplots_adjust(top=0.84, bottom=0.17, left=0.07, right=0.97, hspace=0.45, wspace=0.3)
 
@@ -148,14 +190,17 @@ def interactive(image, source, args):
     # Reserve our shortcuts; Matplotlib otherwise opens its save dialog on 's'.
     for action in ("save", "quit", "xscale", "yscale"):
         plt.rcParams[f"keymap.{action}"] = []
-    state = {"threshold": args.threshold, "roi": args.roi, "invert": args.invert}
+    state = {"threshold": args.threshold, "roi": args.roi, "invert": args.invert,
+             "min_area": args.min_area, "blur": getattr(args, "blur", 0)}
+    settings_path = getattr(args, "photo_settings", None)
+    photo_settings = json.loads(Path(settings_path).read_text()) if settings_path else {}
     figure, grid = plt.subplots(2, 2, figsize=(14, 9))
     figure.canvas.manager.set_window_title("Rice Particle Counter — Interactive System")
     axes = grid.ravel()
     current = {}
 
     def redraw():
-        current["result"] = analyze(image, state["threshold"], args.min_area, state["roi"], state["invert"])
+        current["result"] = analyze(image, state["threshold"], state["min_area"], state["roi"], state["invert"], state["blur"])
         result = current["result"]
         draw_dashboard(figure, axes, result, source)
         figure.subplots_adjust(bottom=0.25)
@@ -170,6 +215,11 @@ def interactive(image, source, args):
             return
         image, source = loaded, Path(path)
         state["roi"] = None
+        if getattr(args, "auto_threshold", False):
+            state["threshold"] = starting_threshold(image, state["blur"])
+        if Path(source).name in photo_settings:
+            state["threshold"] = photo_settings[Path(source).name]
+            state["min_area"] = round(image.shape[0] * image.shape[1] * 0.00004)
         selector.set_visible(False)
         status.set_text(f"Loaded: {source.name}")
         redraw()
@@ -195,11 +245,11 @@ def interactive(image, source, args):
 
     def save():
         try:
-            save_result(current["result"], source, args.output)
+            destination = save_photo(current["result"], source, args.output)
         except OSError as error:
             status.set_text(f"Save failed: {error}")
         else:
-            status.set_text(f"Saved: {Path(args.output).resolve()}")
+            status.set_text(f"Saved: {destination.name} | Index: photo_results.csv")
         figure.canvas.draw_idle()
 
     def reset():
@@ -224,6 +274,13 @@ def interactive(image, source, args):
             state["threshold"] = max(0, state["threshold"] - 5)
         elif event.key == "i":
             state["invert"] = not state["invert"]
+        elif event.key == "a":
+            state["threshold"] = starting_threshold(image, state["blur"], state["roi"])
+        elif event.key in ("[", "]"):
+            state["min_area"] = max(1, state["min_area"] * (0.8 if event.key == "[" else 1.25))
+        elif event.key == "b":
+            options = (0, 3, 5, 7)
+            state["blur"] = options[(options.index(state["blur"]) + 1) % len(options)]
         elif event.key == "r":
             reset()
             return
@@ -255,7 +312,7 @@ def interactive(image, source, args):
         buttons.append(button)
     status_axis = figure.add_axes([0.07, 0.19, 0.9, 0.025])
     status_axis.set_axis_off()
-    status = status_axis.text(0, 0, "Ready | Open: O | Previous/Next: Left/Right | Save overwrites the selected output folder", fontsize=9)
+    status = status_axis.text(0, 0, "Ready | O: open | Left/Right: browse | S: save per photo (same photo replaces its previous export)", fontsize=9)
     figure.canvas.mpl_connect("key_press_event", key)
     plt.show()
     return selector
@@ -267,6 +324,9 @@ def main():
                         help="Image to analyze; defaults to the synthetic dataset demo")
     parser.add_argument("--threshold", type=int, default=127)
     parser.add_argument("--min-area", type=float, default=30)
+    parser.add_argument("--blur", type=int, choices=(0, 3, 5, 7), default=0)
+    parser.add_argument("--auto-threshold", action="store_true", help="Start each loaded image with Otsu threshold")
+    parser.add_argument("--photo-settings", type=Path, help="JSON mapping photo filenames to starting thresholds")
     parser.add_argument("--roi", nargs=4, type=int, metavar=("X", "Y", "W", "H"))
     parser.add_argument("--invert", action="store_true", help="Dark particles on bright background")
     parser.add_argument("--headless", action="store_true", help="Save outputs without opening GUI")
@@ -275,13 +335,21 @@ def main():
     image = cv2.imread(str(args.image))
     if image is None:
         parser.error(f"Cannot read image: {args.image}")
+    if args.photo_settings:
+        settings = json.loads(args.photo_settings.read_text())
+        if args.image.name in settings:
+            args.threshold = settings[args.image.name]
+            args.min_area = round(image.shape[0] * image.shape[1] * 0.00004)
     try:
-        result = analyze(image, args.threshold, args.min_area, args.roi, args.invert)
+        result = analyze(image, args.threshold, args.min_area, args.roi, args.invert, args.blur)
+        if args.auto_threshold:
+            args.threshold = starting_threshold(image, args.blur, args.roi)
+            result = analyze(image, args.threshold, args.min_area, args.roi, args.invert, args.blur)
     except ValueError as error:
         parser.error(str(error))
     if args.headless:
-        save_result(result, args.image, args.output)
-        print(f"Count={len(result['particles'])}; border_excluded={result['border_excluded']}; output={args.output.resolve()}")
+        destination = save_photo(result, args.image, args.output)
+        print(f"Count={len(result['particles'])}; border_excluded={result['border_excluded']}; output={destination.resolve()}")
     else:
         interactive(image, args.image, args)
 

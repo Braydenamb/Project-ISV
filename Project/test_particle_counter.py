@@ -14,7 +14,7 @@ from matplotlib.backend_bases import KeyEvent, MouseEvent
 import cv2
 import numpy as np
 
-from particle_counter import analyze, save_result, interactive, draw_dashboard
+from particle_counter import analyze, save_result, interactive, draw_dashboard, photo_directory, save_photo, starting_threshold
 
 
 class CounterTests(unittest.TestCase):
@@ -88,14 +88,14 @@ class CounterTests(unittest.TestCase):
                     figure.canvas.callbacks.process(name, MouseEvent(name, figure.canvas, *point, button=1))
                 for key in ("+", "s"):
                     figure.canvas.callbacks.process("key_press_event", KeyEvent("key_press_event", figure.canvas, key))
-                saved = json.loads((args.output / "summary.json").read_text())
+                saved = json.loads((photo_directory(args.output, "synthetic.png") / "summary.json").read_text())
                 self.assertEqual(saved["roi"], [5, 5, 35, 35])
                 self.assertEqual(saved["threshold"], 132)
                 self.assertEqual(len(saved["particles"]), 1)
                 self.assertEqual(figure.axes[3].tables[0][1, 1].get_text().get_text(), "400.0")
                 for key in ("r", "-", "s"):
                     figure.canvas.callbacks.process("key_press_event", KeyEvent("key_press_event", figure.canvas, key))
-                saved = json.loads((args.output / "summary.json").read_text())
+                saved = json.loads((photo_directory(args.output, "synthetic.png") / "summary.json").read_text())
                 self.assertEqual(saved["roi"], [0, 0, 180, 120])
                 self.assertEqual(saved["threshold"], 127)
                 self.assertEqual(len(saved["particles"]), 2)
@@ -117,19 +117,37 @@ class CounterTests(unittest.TestCase):
                 figure = plt.gcf()
                 for key in ("right", "s"):
                     figure.canvas.callbacks.process("key_press_event", KeyEvent("key_press_event", figure.canvas, key))
-                saved = json.loads((args.output / "summary.json").read_text())
+                saved = json.loads((photo_directory(args.output, second) / "summary.json").read_text())
                 self.assertEqual(saved["source"], str(second.resolve()))
                 self.assertEqual(saved["particles"], [])
                 self.assertEqual(saved["roi"], [0, 0, 180, 120])
                 for key in ("left", "s"):
                     figure.canvas.callbacks.process("key_press_event", KeyEvent("key_press_event", figure.canvas, key))
-                saved = json.loads((args.output / "summary.json").read_text())
+                saved = json.loads((photo_directory(args.output, first) / "summary.json").read_text())
                 self.assertEqual(len(saved["particles"]), 2)
                 self.assertIn("Saved:", figure.axes[-1].texts[0].get_text())
                 plt.close(figure)
 
             with patch("matplotlib.pyplot.show", side_effect=exercise):
                 interactive(self.image, first, args)
+
+    def test_per_photo_export_does_not_overwrite_other_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = analyze(self.image)
+            first = save_photo(result, "/a/photo.jpg", directory)
+            second = save_photo(result, "/b/photo.jpg", directory)
+            self.assertNotEqual(first, second)
+            save_photo(analyze(np.zeros_like(self.image)), "/a/photo.jpg", directory)
+            self.assertEqual(len(json.loads((second / "summary.json").read_text())["particles"]), 2)
+            with (Path(directory) / "photo_results.csv").open() as stream:
+                self.assertEqual(len(list(csv.DictReader(stream))), 2)
+
+    def test_smoothing_and_automatic_start(self):
+        threshold = starting_threshold(self.image, 5)
+        self.assertTrue(0 <= threshold <= 255)
+        self.assertEqual(len(analyze(self.image, threshold, blur=5)["particles"]), 2)
+        with self.assertRaises(ValueError):
+            analyze(self.image, blur=4)
 
 
     def test_dashboard_empty_and_table_limit(self):

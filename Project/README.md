@@ -1,5 +1,14 @@
 # Topik 10 — Particle Counter & Size Distribution Analyzer
 
+## Foto nyata kelompok — alur terbaru
+
+Tujuh foto dari `/home/miq/Documents/ISV/Project ISV/foto` sudah diproses tanpa mengubah file asli.
+Jalankan `/home/miq/Documents/ISV/Project ISV/Project/run_manual_photos.py` menggunakan interpreter venv untuk membuka sistem dengan foto nyata dan parameter awal per foto.
+Pemeriksaan rinci: `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/MANUAL_PHOTO_REVIEW.md`.
+
+Pembaruan: smoothing opsional (`B`), Otsu opsional (`A`), luas minimum (`[` dan `]`), serta penyimpanan subfolder per foto dan indeks `photo_results.csv`. **Save dan headless sekarang menggunakan subfolder per sumber**, bukan menimpa semua foto dalam satu folder. Foto yang sama tetap menimpa ekspornya sendiri. Penjelasan penyimpanan lama di bawah berlaku sebelum pembaruan ini.
+Hasil lima foto padat adalah jumlah kontur yang belum tervalidasi, bukan jumlah beras pasti; dua foto satu butir masing-masing menghasilkan satu objek. Kalibrasi fisik belum tersedia.
+
 Aturan resmi dan keputusan internal: `/home/miq/Documents/ISV/Project ISV/Project/RULES.md`.
 Hasil audit terbaru (16 November 2026): `/home/miq/Documents/ISV/Project ISV/Project/VERIFICATION.md`.
 
