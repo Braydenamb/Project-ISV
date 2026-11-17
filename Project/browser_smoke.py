@@ -13,7 +13,19 @@ def main():
         page.goto("http://127.0.0.1:8765")
         page.wait_for_function("document.querySelector('#status').textContent.startsWith('Analysis ready')")
         assert page.locator(".photo").count() == 7
+        assert not page.locator("#advanced").evaluate("el => el.open")
+        assert not page.locator("#measurements").evaluate("el => el.open")
+        assert page.locator("#threshold").is_visible()
+        assert not page.locator("#minimum").is_visible()
+        assert not page.locator("#histogram").is_visible()
+        page.locator("#advanced > summary").click()
+        assert page.locator("#minimum").is_visible()
         assert page.locator("#minimum").input_value() == "93"
+        page.locator("#advanced > summary").click()
+        page.locator("#measurements > summary").click()
+        assert page.locator("#histogram").is_visible()
+        assert page.locator("#results").is_visible()
+        page.locator("#measurements > summary").click()
         initial = page.locator("#thresholdNumber").input_value()
         page.locator("h1").click()
         page.keyboard.press("+")
@@ -43,7 +55,7 @@ def main():
         page.set_viewport_size({"width":390,"height":844})
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
         assert not errors, errors
-        print("Browser PASS: photos, keyboard, settings retention, scaled ROI, mask tab, save, reset, mobile width; no JS errors")
+        print("Browser PASS: collapsed details, expandable controls and measurements, photos, keyboard, settings retention, scaled ROI, mask tab, save, reset, mobile width; no JS errors")
         browser.close()
 
 

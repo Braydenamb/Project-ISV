@@ -31,7 +31,7 @@ class WebTests(unittest.TestCase):
                 return urlopen(Request(address + path, data=json.dumps(body).encode() if body is not None else None, headers=headers))
 
             try:
-                self.assertIn(b"Particle analysis", request("/").read())
+                self.assertIn(b"Rice counter", request("/").read())
                 self.assertEqual(len(json.load(request("/api/photos"))["photos"]), 1)
                 body = dict(id=0, threshold=127, min_area=30, blur=0, roi=None, invert=False)
                 data = json.load(request("/api/analyze", body))
