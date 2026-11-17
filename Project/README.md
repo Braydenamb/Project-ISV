@@ -1,5 +1,27 @@
 # Topik 10 — Particle Counter & Size Distribution Analyzer
 
+## HTML dashboard — local interactive workspace
+
+Start the browser interface (the Matplotlib desktop app remains available):
+
+```bash
+"/home/miq/Documents/ISV/Project ISV/Project/.venv/bin/python" \
+  "/home/miq/Documents/ISV/Project ISV/Project/web_app.py"
+```
+
+The launcher opens `http://127.0.0.1:8765`. It uses HTML/CSS/plain JavaScript with Python's standard-library HTTP server; no additional runtime web framework. It binds only to localhost and is not intended for public hosting. Stop with Ctrl+C. Use `--port` if the port is occupied, `--no-browser` to skip automatic browser opening, and `--photos /absolute/folder` to select another existing photo directory. The default is `/home/miq/Documents/ISV/Project ISV/foto`; adding photos requires a server restart. There is no upload/folder-picker UI yet.
+
+- Sidebar thumbnails navigate the seven photos.
+- Detections / Original / Mask tabs share one large viewer. Drag on the actual displayed image to select an ROI; coordinates map to original-resolution pixels. Reset ROI returns to the full image.
+- Threshold slider/numeric input, minimum area, smoothing, inversion, and optional Otsu starting threshold call the existing processing pipeline.
+- Keyboard `+/-` adjusts threshold, left/right navigates photos, and `S` saves when not editing an input.
+- Summary cards, histogram, and all particle rows update from the same analysis response. Stale responses are ignored.
+- Settings, ROI, and saved status are retained **in the current page session only**. Reload resets them; saved files remain on disk. Initial parameters use the recorded photo thresholds and resolution-scaled area cutoff.
+- Save re-analyzes the current parameters and writes per-photo exports and `photo_results.csv` under `/home/miq/Documents/ISV/Project ISV/Project/outputs/web_dashboard`. Saving the same source replaces its previous export. Exports use the existing Matplotlib dashboard image, not a screenshot of the HTML workspace.
+- Physical units remain uncalibrated px². No algorithmic accuracy improvement is claimed by the UI redesign. Dense touching grains and background texture still cause errors.
+
+Verification: **14/14 unit/API tests pass**. Optional `/home/miq/Documents/ISV/Project ISV/Project/browser_smoke.py` uses Playwright with installed Chromium to test real browser navigation, keyboard adjustment, per-photo retention, ROI dragging, mask tab, save, reset, and 390px viewport width; no JavaScript runtime errors were observed. Playwright is a testing tool installed in the venv, not a runtime dependency. Preview: `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/web_dashboard.png`.
+
 ## Foto nyata kelompok — alur terbaru
 
 Tujuh foto dari `/home/miq/Documents/ISV/Project ISV/foto` sudah diproses tanpa mengubah file asli.

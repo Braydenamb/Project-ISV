@@ -4,6 +4,10 @@ Tanggal: **16 November 2026**. Aturan acuan: `/home/miq/Documents/ISV/Project IS
 
 ## Kesimpulan
 
+### HTML dashboard verification
+
+Local HTML/CSS/JavaScript UI now calls the unchanged OpenCV analysis through `/home/miq/Documents/ISV/Project ISV/Project/web_app.py`. **14/14 unit/API tests pass**, including parameter rejection, unknown photo IDs, histogram counts, save export, and foreign-origin POST rejection. Chromium/Playwright end-to-end test passes photo navigation, keyboard threshold, settings retention, scaled ROI dragging, mask view, saving, reset, and narrow-screen overflow check, without JS runtime errors. This is not public-server security certification or physical-count validation. State is in-page only; custom folders use CLI configuration. No camera live or physical calibration was added.
+
 ### Foto nyata dan penyimpanan per foto
 
 Tujuh foto manual diproses dan ditinjau visual. Lima foto padat menunjukkan grain merging dan beberapa false positive latar; dua foto satu butir menghasilkan satu objek dengan parameter awal eksplisit. Otsu seluruh gambar terbukti gagal pada foto satu butir dan tetap opsional. Hasil tidak diklaim sebagai hitungan tervalidasi. Audit foto dan parameter dicatat di `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/MANUAL_PHOTO_REVIEW.md`. Penyimpanan kini dipisahkan berdasarkan identitas path sumber dan membuat indeks CSV. **13/13 test lulus** sebelum penambahan launcher dan pengaturan awal; pengujian akhir dicatat pada log pemeriksaan tugas ini. Foto asli tidak diubah. Tidak ada kalibrasi fisik atau pemisahan butir bersentuhan yang ditambahkan.
