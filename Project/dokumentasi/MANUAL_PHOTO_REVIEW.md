@@ -27,12 +27,12 @@ Pada lima foto padat, kontur masih dapat menggabungkan beberapa butir. Beberapa 
 ```bash
 cd "/home/miq/Documents/ISV/Project ISV/Project"
 "/home/miq/Documents/ISV/Project ISV/Project/.venv/bin/python" \
-  -m tools.run_manual_photos
+  web_app.py
 ```
 
-- Next/Previous memindahkan foto. Threshold awal per foto dibaca dari `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/photo_settings.json`; ROI direset.
+- Next/Previous memindahkan foto. Threshold awal per foto dibaca dari `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/photo_settings.json`; pengaturan dan ROI disimpan selama sesi halaman.
 - Drag ROI mengelilingi area beras untuk menghindari kilau/tekstur di luar area sampel.
-- `+/-`: threshold; `[`/`]`: turunkan/naikkan luas minimum; `B`: siklus smoothing 0,3,5,7; `A`: titik awal Otsu opsional.
+- `+/-`: threshold. Luas minimum, smoothing, dan titik awal Otsu opsional tersedia di Advanced settings.
 - Periksa mask dan kontur, bukan hanya angka jumlah. Area terhubung dapat berisi lebih dari satu butir.
 - Save menulis subfolder khusus foto berdasarkan nama dan hash path. Menyimpan ulang foto yang sama mengganti ekspor foto tersebut; foto lain tetap dipertahankan.
 - Parameter yang diubah manual belum dipersistenkan ke pengaturan awal GUI; hasil Save menyimpan parameter aktual dalam summary JSON.
@@ -41,15 +41,9 @@ Hasil batch dan indeks berada di `/home/miq/Documents/ISV/Project ISV/Project/ou
 
 Preview semua foto: `/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/manual_photo_review.png`.
 
-Reproduksi batch:
-
-```bash
-cd "/home/miq/Documents/ISV/Project ISV/Project"
-"/home/miq/Documents/ISV/Project ISV/Project/.venv/bin/python" \
-  -m tools.process_photos \
-  "/home/miq/Documents/ISV/Project ISV/foto" \
-  --settings "/home/miq/Documents/ISV/Project ISV/Project/dokumentasi/photo_settings.json"
-```
+Skrip batch pengembangan telah dihapus dalam pembersihan repositori. Catatan dan
+hasil batch lama tetap disimpan sebagai bukti eksperimen; gunakan dashboard untuk
+analisis dan ekspor per foto saat ini.
 
 ## Pekerjaan validasi berikutnya
 

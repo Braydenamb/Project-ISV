@@ -32,8 +32,7 @@ All paths below are relative to `/home/miq/Documents/ISV/Project ISV/Project`.
 | `particle_counter.py` | Shared analysis, exports, optional desktop UI |
 | `web/` | HTML, CSS, plain JavaScript |
 | `tests/` | Unit/API tests and optional browser workflow test |
-| `tools/` | Optional batch processing, sample preparation, previews, desktop launcher |
-| `docs/` | Assignment rules, verification history, archived development notes |
+| `docs/` | Assignment rules and verification history |
 | `dokumentasi/` | Photo settings, experiment notes, screenshots |
 | `data/` | Local development datasets; generated/raw data ignored by Git |
 | `outputs/` | Generated analysis exports; ignored by Git |
@@ -58,19 +57,6 @@ With the dashboard server running on port 8765, the optional browser test is:
 It requires the already-installed Playwright testing package and Chromium.
 It saves a test analysis and updates the dashboard screenshot.
 
-## Optional tools
-
-Run these as modules from `/home/miq/Documents/ISV/Project ISV/Project`:
-
-```bash
-.venv/bin/python -m tools.run_manual_photos
-.venv/bin/python -m tools.process_photos --help
-```
-
-`tools.prepare_samples` extracts the local dataset archive and generates synthetic
-development samples. `tools.create_preview` exports a desktop-dashboard preview.
-Neither is needed to run the web dashboard.
-
 ## Limits
 
 - Counts are accepted connected contours, not validated grain totals.
@@ -82,6 +68,5 @@ Neither is needed to run the web dashboard.
 
 Assignment requirements: `/home/miq/Documents/ISV/Project ISV/Project/docs/RULES.md`.
 Verification history: `/home/miq/Documents/ISV/Project ISV/Project/docs/VERIFICATION.md`.
-Historical plans and old commands are preserved in
-`/home/miq/Documents/ISV/Project ISV/Project/docs/DEVELOPMENT_NOTES.md`;
-use this README for current launch and test commands.
+Use this README for current launch and test commands. The verification document
+is a historical record; references to retired helper scripts are not current instructions.
