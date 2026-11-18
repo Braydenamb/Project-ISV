@@ -32,6 +32,7 @@ def analyze(image, threshold=127, min_area=30, roi=None, invert=False, blur=0):
     accepted = np.zeros((h, w), np.uint8)
     particles = []
     border_count = 0
+    background_count = 0
     for contour in contours:
         area = cv2.contourArea(contour)
         if area < min_area or area <= 0:
@@ -39,6 +40,21 @@ def analyze(image, threshold=127, min_area=30, roi=None, invert=False, blur=0):
         bx, by, bw, bh = cv2.boundingRect(contour)
         if bx == 0 or by == 0 or bx + bw == w or by + bh == h:
             border_count += 1
+            continue
+        # Rice candidates should not be branching texture or sparse bright rings.
+        # These conservative shape checks are not a semantic rice classifier.
+        hull_area = cv2.contourArea(cv2.convexHull(contour))
+        perimeter = cv2.arcLength(contour, True)
+        solidity = area / hull_area if hull_area else 0
+        compactness = 4 * np.pi * area / perimeter ** 2 if perimeter else 0
+        if solidity < 0.55 or compactness < 0.08:
+            background_count += 1
+            continue
+        region = np.zeros((bh, bw), np.uint8)
+        cv2.drawContours(region, [contour - [bx, by]], -1, 255, cv2.FILLED)
+        foreground = cv2.countNonZero(cv2.bitwise_and(binary[by:by+bh, bx:bx+bw], region))
+        if foreground / cv2.countNonZero(region) < 0.35:
+            background_count += 1
             continue
         moments = cv2.moments(contour)
         cx = x + moments["m10"] / moments["m00"]
@@ -59,6 +75,8 @@ def analyze(image, threshold=127, min_area=30, roi=None, invert=False, blur=0):
     cv2.rectangle(overlay, (x, y), (x+w-1, y+h-1), (255, 160, 0), 1)
     return {"particles": particles, "overlay": overlay, "mask": mask, "mask_numbered": mask_numbered,
             "binary": binary, "border_excluded": border_count,
+            "background_excluded": background_count,
+            "background_filter": {"min_solidity": 0.55, "min_compactness": 0.08, "min_foreground_fraction": 0.35},
             "roi": [x, y, w, h], "threshold": threshold,
             "min_area_px2": min_area, "invert": invert, "blur": blur}
 

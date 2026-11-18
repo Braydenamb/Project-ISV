@@ -7,13 +7,28 @@ import math
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 import webbrowser
+from uuid import uuid4
 
 import cv2
 import numpy as np
 
-from particle_counter import analyze, save_photo, starting_threshold
+from particle_counter import analyze, save_photo, save_result, starting_threshold
 
 ROOT = Path(__file__).resolve().parent
+
+
+def camera_image(data):
+    frame = data.get("frame")
+    if not isinstance(frame, str) or not frame.startswith("data:image/jpeg;base64,"):
+        raise ValueError("Expected a JPEG camera frame")
+    try:
+        raw = base64.b64decode(frame.split(",", 1)[1], validate=True)
+    except ValueError:
+        raise ValueError("Invalid camera frame encoding") from None
+    image = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR) if raw else None
+    if image is None or max(image.shape[:2]) > 960:
+        raise ValueError("Camera frame must be a decodable image no larger than 960 pixels per side")
+    return image
 
 
 def parameters(data):
@@ -93,18 +108,32 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", 0))
-            if not 0 < length <= 16384:
+            camera = self.path in ("/api/camera/analyze", "/api/camera/auto", "/api/camera/save")
+            if not 0 < length <= (2 * 1024 * 1024 if camera else 16384):
                 raise ValueError("Invalid request size")
             data = json.loads(self.rfile.read(length))
-            path, image = self.photo(data.get("id"))
+            if not isinstance(data, dict):
+                raise ValueError("Expected a JSON object")
+            if camera:
+                image = camera_image(data)
+            else:
+                path, image = self.photo(data.get("id"))
             params = parameters(data)
             result = analyze(image, **params)
-            if self.path == "/api/auto":
+            if self.path in ("/api/auto", "/api/camera/auto"):
                 self.send({"threshold": starting_threshold(image, params["blur"], params["roi"])})
+            elif self.path == "/api/camera/save":
+                destination = self.server.output / "camera" / uuid4().hex
+                destination.mkdir(parents=True)
+                source = destination / "original.png"
+                if not cv2.imwrite(str(source), image):
+                    raise OSError("Could not save camera frame")
+                save_result(result, source, destination)
+                self.send({"output": str(destination), "count": len(result["particles"])})
             elif self.path == "/api/save":
                 destination = save_photo(result, path, self.server.output)
                 self.send({"output": str(destination), "count": len(result["particles"])})
-            elif self.path == "/api/analyze":
+            elif self.path in ("/api/analyze", "/api/camera/analyze"):
                 images = {}
                 for key in ("overlay", "mask_numbered"):
                     display = result[key]
@@ -115,6 +144,7 @@ class Handler(BaseHTTPRequestHandler):
                 areas = [p["area_px2"] for p in result["particles"]]
                 counts, edges = np.histogram(areas, bins=min(10, len(areas))) if areas else ([], [])
                 self.send({"particles": result["particles"], "border_excluded": result["border_excluded"],
+                           "background_excluded": result["background_excluded"],
                            "width": image.shape[1], "height": image.shape[0], "roi": result["roi"],
                            "images": images, "histogram": {"counts": list(map(int, counts)), "edges": list(map(float, edges))}})
             else:

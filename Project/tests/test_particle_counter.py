@@ -27,6 +27,36 @@ class CounterTests(unittest.TestCase):
         result = analyze(self.image)
         self.assertEqual([p["area_px2"] for p in result["particles"]], [400, 900])
 
+    def test_rejects_branching_background_and_sparse_rings(self):
+        image = np.zeros((240, 400, 3), np.uint8)
+        cv2.ellipse(image, (45, 60), (20, 7), 30, 0, 360, (255, 255, 255), -1)
+        # Connected bright floor texture with long branches.
+        cv2.line(image, (110, 30), (110, 190), (255, 255, 255), 3)
+        for y in range(40, 190, 20):
+            cv2.line(image, (110, y), (180, y), (255, 255, 255), 3)
+        # RETR_EXTERNAL alone would incorrectly fill/count this bright ring.
+        cv2.circle(image, (300, 100), 45, (255, 255, 255), 2)
+        for invert in (False, True):
+            result = analyze(255-image if invert else image, min_area=30, invert=invert)
+            self.assertEqual(len(result["particles"]), 1)
+            self.assertEqual(result["background_excluded"], 2)
+            self.assertEqual(result["mask"][100, 300], 0)
+            self.assertEqual(result["mask"][100, 110], 0)
+            self.assertEqual(result["mask"][60, 45], 255)
+
+    def test_shape_filter_retains_rotated_isolated_grains_and_roi(self):
+        image = np.zeros((220, 300, 3), np.uint8)
+        for center, axes, angle in (((50, 60), (20, 7), 0), ((140, 60), (22, 8), 45),
+                                   ((230, 60), (20, 8), 90), ((140, 150), (12, 9), 135)):
+            cv2.ellipse(image, center, axes, angle, 0, 360, (255, 255, 255), -1)
+        for blur in (0, 3, 5, 7):
+            result = analyze(image, blur=blur)
+            self.assertEqual(len(result["particles"]), 4)
+            self.assertEqual(result["background_excluded"], 0)
+        result = analyze(image, roi=(100, 110, 80, 80))
+        self.assertEqual(len(result["particles"]), 1)
+        self.assertAlmostEqual(result["particles"][0]["cx_px"], 140, delta=1)
+
     def test_empty_and_threshold(self):
         self.assertEqual(len(analyze(np.zeros_like(self.image))["particles"]), 0)
         self.assertEqual(len(analyze(self.image, threshold=255)["particles"]), 0)
